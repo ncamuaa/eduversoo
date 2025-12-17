@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "EduVerso Student",
+    "slug": "eduverso-student-mobile",
+    "owner": "eduverso",
+    "ios": {
+      "bundleIdentifier": "com.eduverso.student"
+    },
+    "android": {
+      "package": "com.eduverso.student"
+    }
+  }
+}
