@@ -1,5 +1,5 @@
 // screens/ModuleViewerScreen.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -13,12 +13,13 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { WebView } from "react-native-webview";
+import { API_URL } from "../config/api";
 
 
 /* =======================
    CONSTANTS
 ======================= */
-const API = "http://192.168.100.180:5001";
+const API = API_URL;
 const XP_ON_COMPLETE = 30;
 const TOTAL_PAGES = 4; // keep static for now
 
@@ -34,6 +35,8 @@ export default function ModuleViewerScreen() {
 
   const [loadedQuestions, setLoadedQuestions] = useState([]);
   const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [scrollPercent, setScrollPercent] = useState(0);
+  const scrollRef = useRef(null);
 
   /* =======================
      LOAD USER + NOTES
@@ -66,6 +69,26 @@ export default function ModuleViewerScreen() {
   }
 
   const progressPercent = Math.round((pageNum / TOTAL_PAGES) * 100);
+
+  // Effective progress combines current page number with scroll percentage
+  const effectiveProgress = Math.min(
+    100,
+    Math.round(
+      ((pageNum - 1 + scrollPercent / 100) / TOTAL_PAGES) * 100
+    )
+  );
+
+  /* =======================
+     SCROLL HANDLER
+  ======================= */
+  const handleScroll = (event) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const totalHeight = contentSize.height - layoutMeasurement.height;
+    if (totalHeight > 0) {
+      const percent = Math.round((contentOffset.y / totalHeight) * 100);
+      setScrollPercent(Math.max(0, Math.min(100, percent)));
+    }
+  };
 
   /* =======================
      SAVE PROGRESS
@@ -156,6 +179,8 @@ export default function ModuleViewerScreen() {
     if (pageNum < TOTAL_PAGES) {
       const next = pageNum + 1;
       setPageNum(next);
+      setScrollPercent(0);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
       await saveProgress(Math.round((next / TOTAL_PAGES) * 100), false);
       return;
     }
@@ -166,7 +191,11 @@ export default function ModuleViewerScreen() {
   };
 
   const handlePrevPage = () => {
-    if (pageNum > 1) setPageNum(pageNum - 1);
+    if (pageNum > 1) {
+      setPageNum(pageNum - 1);
+      setScrollPercent(0);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+    }
   };
 
   /* =======================
@@ -189,7 +218,12 @@ export default function ModuleViewerScreen() {
      UI
   ======================= */
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      ref={scrollRef}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
+    >
       <TouchableOpacity onPress={() => navigation.goBack()}>
         <Text style={styles.exitText}>⬅ Exit Module</Text>
       </TouchableOpacity>
@@ -198,11 +232,11 @@ export default function ModuleViewerScreen() {
 
       <View style={styles.metaRow}>
         <Text style={styles.metaText}>Page {pageNum} / {TOTAL_PAGES}</Text>
-        <Text style={styles.metaText}>{progressPercent}%</Text>
+        <Text style={styles.metaText}>{effectiveProgress}%</Text>
       </View>
 
       <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+        <View style={[styles.progressFill, { width: `${effectiveProgress}%` }]} />
       </View>
 
       {/* ✅ REAL PDF VIEWER */}
@@ -380,4 +414,3 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 });
-

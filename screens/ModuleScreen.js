@@ -9,8 +9,9 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
+import { API_URL } from "../config/api";
 
-const BASE = "http://192.168.100.180:5001";
+const BASE = API_URL;
 
 
 export default function ModulesScreen() {

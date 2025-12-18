@@ -13,13 +13,10 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
+import { API_URL } from "../config/api";
 
-import * as Google from "expo-auth-session/providers/google";
-import * as WebBrowser from "expo-web-browser";
+const API_BASE = API_URL;
 
-WebBrowser.maybeCompleteAuthSession();
-
-const API_BASE = "http://192.168.100.180:5001";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
@@ -28,57 +25,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
-
-  /* ===============================
-     GOOGLE AUTH
-  =============================== */
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    expoClientId:
-      "455896959380-ocuuhpnodnduef1i4q70gv405ce6h5ou.apps.googleusercontent.com",
-    iosClientId:
-      "455896959380-ocuuhpnodnduef1i4q70gv405ce6h5ou.apps.googleusercontent.com",
-  });
-
-  useEffect(() => {
-    if (
-      response?.type === "success" &&
-      response.authentication?.idToken
-    ) {
-      handleGoogleLogin(response.authentication.idToken);
-    }
-  }, [response]);
-
-  const handleGoogleLogin = async (id_token) => {
-    try {
-      const res = await fetch(`${API_BASE}/auth/google-login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id_token }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.token) {
-        Alert.alert("Google Login Failed", data.message || "Try again");
-        return;
-      }
-
-      await AsyncStorage.setItem("token", data.token);
-
-      // ✅ FIXED: store avatar as RELATIVE PATH ONLY
-      await AsyncStorage.setItem(
-        "user",
-        JSON.stringify({
-          ...data.user,
-          avatar: data.user.avatar || "",
-        })
-      );
-
-      navigation.replace("Home");
-    } catch (err) {
-      Alert.alert("Error", "Google login failed");
-    }
-  };
+  const [isRobotChecked, setIsRobotChecked] = useState(false);
 
   /* ===============================
      EMAIL + PASSWORD LOGIN
@@ -88,6 +35,11 @@ export default function LoginScreen() {
 
     if (!email || !password) {
       setError("Email and password required");
+      return;
+    }
+
+    if (!isRobotChecked) {
+      setError("Please confirm you are not a robot");
       return;
     }
 
@@ -171,22 +123,22 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* I'm not a robot Checkbox */}
+        <TouchableOpacity
+          style={styles.robotContainer}
+          onPress={() => setIsRobotChecked(!isRobotChecked)}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.robotBox, isRobotChecked && styles.robotBoxChecked]}>
+            {isRobotChecked && <Text style={styles.robotCheckmark}>✓</Text>}
+          </View>
+          <Text style={styles.robotText}>I'm not a robot</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
           <Text style={styles.loginText}>Login</Text>
         </TouchableOpacity>
 
-        <Text style={styles.continueText}>Or continue with</Text>
-
-        <TouchableOpacity
-          disabled={!request}
-          style={styles.googleButton}
-          onPress={() => promptAsync()}
-        >
-          <Image
-            source={require("../assets/google.png")}
-            style={{ width: 40, height: 40 }}
-          />
-        </TouchableOpacity>
       </View>
     </LinearGradient>
   );
@@ -217,6 +169,41 @@ const styles = StyleSheet.create({
   },
   passwordBox: { width: "100%" },
   eye: { position: "absolute", right: 16, top: 18 },
+  robotContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginTop: 10,
+    marginBottom: 10,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    padding: 10,
+    borderRadius: 8,
+    width: "100%",
+  },
+  robotBox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: "white",
+    marginRight: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "transparent",
+  },
+  robotBoxChecked: {
+    backgroundColor: "#4CAF50",
+    borderColor: "#4CAF50",
+  },
+  robotCheckmark: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
+  },
+  robotText: {
+    color: "white",
+    fontSize: 16,
+  },
   loginBtn: {
     width: "60%",
     padding: 16,
@@ -225,6 +212,4 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   loginText: { color: "white", textAlign: "center", fontSize: 18 },
-  continueText: { color: "#eee", marginTop: 18 },
-  googleButton: { marginTop: 14 },
 });

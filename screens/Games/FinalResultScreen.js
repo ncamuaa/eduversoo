@@ -8,8 +8,9 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
+import { API_URL } from "../../config/api";
 
-const API_BASE = "http://192.168.100.180:5001";
+const API_BASE = API_URL;
 
 export default function FinalResultScreen({ route, navigation }) {
   const { student_id, module_id, correct, total, game_name } = route.params;

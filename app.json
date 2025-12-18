@@ -8,6 +8,11 @@
     },
     "android": {
       "package": "com.eduverso.student"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "05d0c4b4-2539-424e-9f04-4c02986a071e"
+      }
     }
   }
 }

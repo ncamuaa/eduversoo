@@ -8,17 +8,15 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
-import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
+import { FontAwesome5 } from "@expo/vector-icons";
+import { API_URL } from "../config/api";
 
-const BASE = "http://192.168.100.180:5001";
-
+const BASE = API_URL;
 
 export default function AnnouncementScreen() {
   const navigation = useNavigation();
 
   const [announcements, setAnnouncements] = useState([]);
-  const [toDelete, setToDelete] = useState(null);
-
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 4;
 
@@ -28,24 +26,28 @@ export default function AnnouncementScreen() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/announcements`);
+        // ✅ FIXED: use BASE (API_BASE did not exist)
+        const res = await fetch(`${BASE}/api/announcements`);
         const data = await res.json();
 
-        const parsed = (data.announcements || []).map((a) => ({
+        const parsed = (data.announcements || data.data || data || []).map((a) => ({
           id: a.id,
-          title: a.title,
-          body: a.body,
-          category: a.category,
-          isNew: a.is_new === 1,
-          date: new Date(a.created_at).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-          }),
+          title: a.title || "",
+          body: a.body || "",
+          category: a.category || "info",
+          isNew: a.is_new === 1 || a.is_new === true,
+          date: a.created_at
+            ? new Date(a.created_at).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })
+            : "",
         }));
 
         setAnnouncements(parsed);
       } catch (err) {
         console.log("Announcement error:", err);
+        setAnnouncements([]);
       }
     };
 
@@ -55,10 +57,7 @@ export default function AnnouncementScreen() {
   /* ============================================
         PAGINATION
   ============================================ */
-  const totalPages = Math.max(
-    1,
-    Math.ceil(announcements.length / perPage)
-  );
+  const totalPages = Math.max(1, Math.ceil(announcements.length / perPage));
 
   const pageItems = useMemo(() => {
     const start = (currentPage - 1) * perPage;
@@ -70,7 +69,7 @@ export default function AnnouncementScreen() {
   };
 
   /* ============================================
-        CATEGORY COLORS
+        CATEGORY COLORS (STATIC)
   ============================================ */
   const catColors = {
     info: "#4DA8FF",
@@ -79,10 +78,7 @@ export default function AnnouncementScreen() {
   };
 
   return (
-    <LinearGradient
-      colors={["#0b0830", "#2a1167", "#4a2bff"]}
-      style={{ flex: 1 }}
-    >
+    <LinearGradient colors={["#0b0830", "#2a1167", "#4a2bff"]} style={{ flex: 1 }}>
       <ScrollView
         contentContainerStyle={{
           padding: 20,
@@ -99,14 +95,14 @@ export default function AnnouncementScreen() {
           <View style={{ width: 50 }} />
         </View>
 
-        {/* No Announcements */}
+        {/* EMPTY */}
         {pageItems.length === 0 && (
           <View style={styles.emptyCard}>
             <Text style={{ color: "white" }}>📭 No announcements yet.</Text>
           </View>
         )}
 
-        {/* ANNOUNCEMENT CARDS */}
+        {/* CARDS */}
         {pageItems.map((a) => (
           <View key={a.id} style={styles.card}>
             {/* CATEGORY */}
@@ -114,7 +110,7 @@ export default function AnnouncementScreen() {
               <View
                 style={[
                   styles.categoryTag,
-                  { backgroundColor: `${catColors[a.category]}25` },
+                  { backgroundColor: `${catColors[a.category] || "#4DA8FF"}25` },
                 ]}
               >
                 <FontAwesome5
@@ -126,15 +122,15 @@ export default function AnnouncementScreen() {
                       : "sync"
                   }
                   size={14}
-                  color={catColors[a.category]}
+                  color={catColors[a.category] || "#4DA8FF"}
                 />
                 <Text
                   style={[
                     styles.categoryText,
-                    { color: catColors[a.category] },
+                    { color: catColors[a.category] || "#4DA8FF" },
                   ]}
                 >
-                  {a.category.toUpperCase()}
+                  {(a.category || "info").toUpperCase()}
                 </Text>
               </View>
 
@@ -188,6 +184,9 @@ export default function AnnouncementScreen() {
   );
 }
 
+/* =============================
+     STYLES
+============================= */
 const styles = StyleSheet.create({
   headerRow: {
     flexDirection: "row",
@@ -249,7 +248,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  /* Pagination */
   paginationRow: {
     marginTop: 26,
     flexDirection: "row",
@@ -267,8 +265,6 @@ const styles = StyleSheet.create({
 
   pageNums: { flexDirection: "row", gap: 8 },
   pageNum: { padding: 8, borderRadius: 8 },
-  pageNumActive: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-  },
+  pageNumActive: { backgroundColor: "rgba(255,255,255,0.2)" },
   pageNumText: { color: "white", fontWeight: "700" },
 });

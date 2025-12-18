@@ -16,8 +16,9 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
+import { API_URL } from "../config/api";
 
-const API_BASE = "http://192.168.100.180:5001";
+const API_BASE = API_URL;
 
 
 
@@ -27,7 +28,7 @@ const API_BASE = "http://192.168.100.180:5001";
 const MENU_ITEMS = [
   { route: "Tutor", label: "Voice Tutor", icon: "microphone", color: "#2962FF" },
   { route: "Modules", label: "Modules", icon: "book-open", color: "#2BC48A" },
-  { route: "PeerFeedback", label: "Peer Feedback", icon: "comments", color: "#FF6B88" },
+  { route: "PeerFeedback", label: "Student Hub", icon: "comments", color: "#FF6B88" },
   { route: "QuizArena", label: "AI Quiz Arena", icon: "brain", color: "#FFB84D" },
   { route: "Announcement", label: "Announcement", icon: "bullhorn", color: "#4DA8FF" },
   { route: "Settings", label: "Settings", icon: "cog", color: "#A878FF" },

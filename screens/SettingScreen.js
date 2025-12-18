@@ -14,8 +14,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
+import { API_URL } from "../config/api";
 
-const BASE = "http://192.168.100.180:5001";
+const BASE = API_URL;
 
 
 export default function SettingsScreen() {
@@ -48,12 +49,34 @@ export default function SettingsScreen() {
       const savedAccent = await AsyncStorage.getItem("accent");
       const savedTheme = await AsyncStorage.getItem("theme");
       const savedReducedMotion = await AsyncStorage.getItem("reducedMotion");
+      const savedNotifications = await AsyncStorage.getItem("notifications");
+      const savedSound = await AsyncStorage.getItem("sound");
 
       if (savedAccent) setAccent(savedAccent);
       if (savedTheme) setTheme(savedTheme);
-      if (savedReducedMotion) setReducedMotion(savedReducedMotion === "true");
+      if (savedReducedMotion !== null) setReducedMotion(savedReducedMotion === "true");
+      if (savedNotifications !== null) setNotifications(savedNotifications === "true");
+      if (savedSound !== null) setSound(savedSound === "true");
     })();
   }, []);
+
+  /* ===================================================
+      HANDLERS (PERSISTENCE)
+  =================================================== */
+  const handleNotificationChange = async (val) => {
+    setNotifications(val);
+    await AsyncStorage.setItem("notifications", String(val));
+  };
+
+  const handleSoundChange = async (val) => {
+    setSound(val);
+    await AsyncStorage.setItem("sound", String(val));
+  };
+
+  const handleReducedMotionChange = async (val) => {
+    setReducedMotion(val);
+    await AsyncStorage.setItem("reducedMotion", String(val));
+  };
 
   /* ===================================================
       SAVE ACCENT COLOR
@@ -75,12 +98,30 @@ export default function SettingsScreen() {
   /* ===================================================
       CHANGE PASSWORD
   =================================================== */
+  const validatePassword = (pass) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(pass);
+    const hasLowerCase = /[a-z]/.test(pass);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
+
+    if (pass.length < minLength) return "Password must be at least 8 characters.";
+    if (!hasUpperCase) return "Password must contain at least one uppercase letter.";
+    if (!hasLowerCase) return "Password must contain at least one lowercase letter.";
+    if (!hasSpecialChar) return "Password must contain at least one special character.";
+    return null;
+  };
+
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword)
       return Alert.alert("Error", "Please fill out both fields.");
 
+    const validationError = validatePassword(newPassword);
+    if (validationError) {
+      return Alert.alert("Weak Password", validationError);
+    }
+
     try {
-      const res = await fetch(`${API}/auth/change-password`, {
+      const res = await fetch(`${BASE}/auth/change-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -111,7 +152,7 @@ export default function SettingsScreen() {
     if (!newEmail.trim()) return Alert.alert("Error", "Enter new email.");
 
     try {
-      const res = await fetch(`${API}/auth/change-email`, {
+      const res = await fetch(`${BASE}/auth/change-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -147,7 +188,7 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const res = await fetch(`${API}/auth/delete-account`, {
+              const res = await fetch(`${BASE}/auth/delete-account`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ user_id: user.id }),
@@ -174,31 +215,81 @@ export default function SettingsScreen() {
   };
 
   /* ===================================================
+      CONSTANTS
+  =================================================== */
+  const ACCENT_COLORS = {
+    blue: "#6fa8ff",
+    purple: "#9a6bff",
+    gold: "#ffd86b",
+    green: "#7ef2b2",
+  };
+
+  const THEME_BG = {
+    dark: ["#151557", "#3c1aa0", "#7a33ff"],
+    light: ["#ffffff", "#e0e0e0", "#b0b0b0"],
+  };
+
+  const isDark = theme === "dark";
+  const textColor = isDark ? "#fff" : "#111";
+  const subTextColor = isDark ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.6)";
+  const cardBg = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+  const inputBg = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+  const currentAccent = ACCENT_COLORS[accent] || ACCENT_COLORS.purple;
+
+  /* ===================================================
       UI
   =================================================== */
   return (
-    <LinearGradient colors={["#151557", "#3c1aa0", "#7a33ff"]} style={{ flex: 1 }}>
+    <LinearGradient colors={THEME_BG[theme]} style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.container}>
 
           {/* TOP BAR */}
           <View style={styles.topRow}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.backText}>← Back</Text>
+              <Text style={[styles.backText, { color: textColor }]}>← Back</Text>
             </TouchableOpacity>
-            <Text style={styles.title}>Settings</Text>
+            <Text style={[styles.title, { color: textColor }]}>Settings</Text>
             <View style={{ width: 60 }} />
           </View>
 
           {/* TOGGLE CARDS */}
-          <ToggleCard title="Notifications" desc="Enable reminders" state={notifications} setState={setNotifications} />
-          <ToggleCard title="Sound" desc="UI click sounds" state={sound} setState={setSound} />
-          <ToggleCard title="Reduced Motion" desc="Less animations" state={reducedMotion} setState={setReducedMotion} />
-          <ToggleCard title="Dark Mode" desc="Switch theme" state={theme === "dark"} setState={toggleTheme} />
+          <ToggleCard
+            title="Notifications"
+            desc="Enable reminders"
+            state={notifications}
+            setState={handleNotificationChange}
+            themeStyles={{ title: textColor, desc: subTextColor, card: cardBg }}
+            accentColor={currentAccent}
+          />
+          <ToggleCard
+            title="Sound"
+            desc="UI click sounds"
+            state={sound}
+            setState={handleSoundChange}
+            themeStyles={{ title: textColor, desc: subTextColor, card: cardBg }}
+            accentColor={currentAccent}
+          />
+          <ToggleCard
+            title="Reduced Motion"
+            desc="Less animations"
+            state={reducedMotion}
+            setState={handleReducedMotionChange}
+            themeStyles={{ title: textColor, desc: subTextColor, card: cardBg }}
+            accentColor={currentAccent}
+          />
+          <ToggleCard
+            title="Dark Mode"
+            desc="Switch theme"
+            state={theme === "dark"}
+            setState={toggleTheme}
+            themeStyles={{ title: textColor, desc: subTextColor, card: cardBg }}
+            accentColor={currentAccent}
+          />
 
           {/* ACCENT COLOR */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Accent Color</Text>
+          <View style={[styles.card, { backgroundColor: cardBg }]}>
+            <Text style={[styles.cardTitle, { color: textColor }]}>Accent Color</Text>
             <View style={styles.colorRow}>
               {["blue", "purple", "gold", "green"].map((c) => (
                 <TouchableOpacity
@@ -207,7 +298,7 @@ export default function SettingsScreen() {
                   style={[
                     styles.colorChip,
                     styles[c],
-                    accent === c && styles.colorSelected,
+                    accent === c && [styles.colorSelected, { borderColor: textColor }],
                   ]}
                 />
               ))}
@@ -215,40 +306,40 @@ export default function SettingsScreen() {
           </View>
 
           {/* EMAIL CHANGE */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Change Email</Text>
+          <View style={[styles.card, { backgroundColor: cardBg }]}>
+            <Text style={[styles.cardTitle, { color: textColor }]}>Change Email</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
               placeholder="New email"
-              placeholderTextColor="#bbb"
+              placeholderTextColor={isDark ? "#bbb" : "#666"}
               value={newEmail}
               onChangeText={setNewEmail}
             />
-            <TouchableOpacity style={styles.btn} onPress={handleChangeEmail}>
+            <TouchableOpacity style={[styles.btn, { backgroundColor: currentAccent }]} onPress={handleChangeEmail}>
               <Text style={styles.btnText}>Update Email</Text>
             </TouchableOpacity>
           </View>
 
           {/* PASSWORD CHANGE */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Change Password</Text>
+          <View style={[styles.card, { backgroundColor: cardBg }]}>
+            <Text style={[styles.cardTitle, { color: textColor }]}>Change Password</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
               placeholder="Current password"
-              placeholderTextColor="#bbb"
+              placeholderTextColor={isDark ? "#bbb" : "#666"}
               secureTextEntry
               value={oldPassword}
               onChangeText={setOldPassword}
             />
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
               placeholder="New password"
-              placeholderTextColor="#bbb"
+              placeholderTextColor={isDark ? "#bbb" : "#666"}
               secureTextEntry
               value={newPassword}
               onChangeText={setNewPassword}
             />
-            <TouchableOpacity style={styles.btn} onPress={handleChangePassword}>
+            <TouchableOpacity style={[styles.btn, { backgroundColor: currentAccent }]} onPress={handleChangePassword}>
               <Text style={styles.btnText}>Update Password</Text>
             </TouchableOpacity>
           </View>
@@ -267,15 +358,15 @@ export default function SettingsScreen() {
 /* ============================================================
    SMALL COMPONENT
 ============================================================ */
-function ToggleCard({ title, desc, state, setState }) {
+function ToggleCard({ title, desc, state, setState, themeStyles, accentColor }) {
   return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={styles.cardDesc}>{desc}</Text>
+    <View style={[styles.card, { backgroundColor: themeStyles.card }]}>
+      <Text style={[styles.cardTitle, { color: themeStyles.title }]}>{title}</Text>
+      <Text style={[styles.cardDesc, { color: themeStyles.desc }]}>{desc}</Text>
 
       <TouchableOpacity
         onPress={() => setState(!state)}
-        style={[styles.toggle, state && styles.toggleOn]}
+        style={[styles.toggle, state && { backgroundColor: accentColor }]}
       >
         <View style={[styles.knob, state && styles.knobOn]} />
       </TouchableOpacity>

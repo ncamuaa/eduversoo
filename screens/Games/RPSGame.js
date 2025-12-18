@@ -6,12 +6,15 @@ import {
   StyleSheet,
   Image,
   Modal,
+  StatusBar,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { useTheme } from "../../context/ThemeContext";
+import { API_URL } from "../../config/api";
 
-const API_BASE = "http://192.168.100.180:5001";
+const API_BASE = API_URL;
 
 const hands = {
   rock: require("../../assets/rock.png"),
@@ -32,7 +35,7 @@ export default function RPSGame() {
   const TOTAL_QUESTIONS = Array.isArray(questions) ? questions.length : 0;
   const MAX_SCORE = TOTAL_ROUNDS + TOTAL_QUESTIONS;
 
-  /* ================= STATE ================= */
+  /* ================= STATE (UNCHANGED) ================= */
   const [mode, setMode] = useState("menu");
   const [round, setRound] = useState(1);
   const [playerChoice, setPlayerChoice] = useState(null);
@@ -47,7 +50,7 @@ export default function RPSGame() {
   const [showInstructions, setShowInstructions] = useState(true);
   const [showHint, setShowHint] = useState(false);
 
-  /* ================= RESET ================= */
+  /* ================= RESET (UNCHANGED) ================= */
   useEffect(() => {
     resetGame();
   }, [mode]);
@@ -63,7 +66,7 @@ export default function RPSGame() {
     setTimeLeft(QUESTION_TIME);
   };
 
-  /* ================= QUESTION TIMER ================= */
+  /* ================= QUESTION TIMER (UNCHANGED) ================= */
   useEffect(() => {
     if (!showQuestion) return;
 
@@ -80,7 +83,7 @@ export default function RPSGame() {
     return () => clearTimeout(timer);
   }, [timeLeft, showQuestion]);
 
-  /* ================= RPS ROUND ================= */
+  /* ================= RPS ROUND (UNCHANGED) ================= */
   const playRound = (choice) => {
     setPlayerChoice(choice);
 
@@ -113,7 +116,7 @@ export default function RPSGame() {
     }
   };
 
-  /* ================= NEXT ROUND ================= */
+  /* ================= NEXT ROUND (UNCHANGED) ================= */
   const nextRound = () => {
     if (round < TOTAL_ROUNDS) {
       setRound((r) => r + 1);
@@ -125,7 +128,7 @@ export default function RPSGame() {
     }
   };
 
-  /* ================= ANSWER QUESTION ================= */
+  /* ================= ANSWER QUESTION (UNCHANGED) ================= */
   const answerQuestion = (answer) => {
     const q = questions[currentQuestion];
     if (!q) return;
@@ -143,7 +146,7 @@ export default function RPSGame() {
     nextRound();
   };
 
-  /* ================= FINISH GAME ================= */
+  /* ================= FINISH GAME (UNCHANGED) ================= */
   const finishGame = () => {
     navigation.replace("FinalResult", {
       student_id: Number(student_id),
@@ -157,9 +160,10 @@ export default function RPSGame() {
   /* ================= MENU ================= */
   if (mode === "menu") {
     return (
-      <LinearGradient colors={["#2b1e78", "#5620e0"]} style={{ flex: 1 }}>
+      <LinearGradient colors={["#1b0f3b", "#2b1a5a"]} style={{ flex: 1 }}>
+        <StatusBar barStyle="light-content" />
         <View style={styles.menuContainer}>
-          <Text style={styles.title}>RPS Game</Text>
+          <Text style={styles.title}>RPS GAME</Text>
 
           <TouchableOpacity
             style={styles.menuBtn}
@@ -187,35 +191,53 @@ export default function RPSGame() {
 
   /* ================= GAME ================= */
   return (
-    <LinearGradient colors={["#1b0b42", "#3c1ca8"]} style={{ flex: 1 }}>
+    <LinearGradient colors={["#1b0f3b", "#2b1a5a"]} style={{ flex: 1 }}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Neon Frame */}
+      <View style={styles.neonFrame} />
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={26} color="#fff" />
         </TouchableOpacity>
-
         <TouchableOpacity onPress={() => setShowHint(true)}>
           <Ionicons name="bulb-outline" size={26} color="#fff" />
         </TouchableOpacity>
       </View>
 
       <View style={styles.container}>
-        <Text style={styles.roundLabel}>
-          Round {round} / {TOTAL_ROUNDS}
-        </Text>
+        {/* Round */}
+        <View style={styles.roundPill}>
+          <Text style={styles.roundText}>
+            Round {round} / {TOTAL_ROUNDS}
+          </Text>
+        </View>
 
+        {/* VS */}
+        <Text style={styles.vsText}>VS</Text>
+
+        {/* Arena */}
         <View style={styles.arena}>
-          {playerChoice && <Image source={hands[playerChoice]} style={styles.bigHand} />}
-          <Text style={styles.vs}>VS</Text>
-          {cpuChoice && <Image source={hands[cpuChoice]} style={styles.bigHand} />}
+          {playerChoice && (
+            <Image source={hands[playerChoice]} style={styles.bigHand} />
+          )}
+          {cpuChoice && (
+            <Image source={hands[cpuChoice]} style={styles.bigHand} />
+          )}
         </View>
 
         <Text style={styles.resultText}>{result}</Text>
 
+        {/* Choices */}
         <View style={styles.choiceRow}>
           {CHOICES.map((c) => (
             <TouchableOpacity
               key={c}
-              style={styles.choiceBtn}
+              style={[
+                styles.choiceBtn,
+                playerChoice && styles.choiceDisabled,
+              ]}
               onPress={() => playRound(c)}
               disabled={!!playerChoice}
             >
@@ -224,42 +246,41 @@ export default function RPSGame() {
           ))}
         </View>
 
-        <Text style={styles.scoreText}>
-          Score: {score} / {MAX_SCORE}
-        </Text>
+        {/* Score */}
+        <View style={styles.scorePill}>
+          <Text style={styles.scoreText}>
+            Score: {score} / {MAX_SCORE}
+          </Text>
+        </View>
       </View>
 
-      {/* ================= INSTRUCTIONS ================= */}
+      {/* ================= MODALS (UNCHANGED LOGIC) ================= */}
       <Modal visible={showInstructions} transparent animationType="fade">
         <View style={styles.modalBg}>
           <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>📘 RPS Instructions</Text>
+            <Text style={styles.modalTitle}>📘 Instructions</Text>
             <Text style={styles.modalText}>
               • Win RPS rounds to gain points{"\n"}
-              • Challenge mode adds quiz questions{"\n"}
+              • Challenge mode adds quiz{"\n"}
               • Higher score = more XP
             </Text>
-
             <TouchableOpacity
               style={styles.qBtn}
               onPress={() => setShowInstructions(false)}
             >
-              <Text style={styles.qText}>Start Game 🚀</Text>
+              <Text style={styles.qText}>Start</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
 
-      {/* ================= QUESTION ================= */}
       <Modal visible={showQuestion} transparent animationType="fade">
         <View style={styles.modalBg}>
           <View style={styles.modalBox}>
             <Text style={styles.timer}>⏱ {timeLeft}s</Text>
-
             <Text style={styles.qTitle}>
               {questions[currentQuestion]?.question}
             </Text>
-
             {["choice_a", "choice_b", "choice_c", "choice_d"].map((key) => (
               <TouchableOpacity
                 key={key}
@@ -277,13 +298,12 @@ export default function RPSGame() {
         </View>
       </Modal>
 
-      {/* ================= HINT ================= */}
       <Modal visible={showHint} transparent animationType="fade">
         <View style={styles.modalBg}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>💡 Hint</Text>
             <Text style={styles.modalText}>
-              Winning RPS gives points — answering quiz correctly gives bonus!
+              Win RPS + answer quiz for more points
             </Text>
             <TouchableOpacity
               style={styles.qBtn}
@@ -300,51 +320,190 @@ export default function RPSGame() {
 
 /* ================= STYLES ================= */
 const styles = StyleSheet.create({
+  neonFrame: {
+    position: "absolute",
+    top: 40,
+    bottom: 40,
+    left: 20,
+    right: 20,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: "#3dfcff",
+    shadowColor: "#3dfcff",
+    shadowOpacity: 0.9,
+    shadowRadius: 25,
+  },
+
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     padding: 16,
   },
-  menuContainer: { flex: 1, alignItems: "center", paddingTop: 100 },
-  title: { fontSize: 32, color: "#fff", marginBottom: 40 },
-  menuBtn: {
-    backgroundColor: "#7a4fff",
-    padding: 16,
-    width: "70%",
-    borderRadius: 14,
-    marginBottom: 16,
-    alignItems: "center",
-  },
-  menuBtnText: { color: "#fff", fontSize: 18 },
 
-  container: { alignItems: "center", paddingTop: 20 },
-  roundLabel: { color: "#fff", fontSize: 22 },
-  arena: { flexDirection: "row", marginVertical: 30, alignItems: "center" },
-  bigHand: { width: 120, height: 120 },
-  vs: { color: "#fff", fontSize: 32, marginHorizontal: 20 },
-  resultText: { color: "#fff", fontSize: 26 },
-  choiceRow: { flexDirection: "row", marginTop: 20 },
-  choiceBtn: { padding: 12 },
-  choiceIcon: { width: 50, height: 50 },
-  scoreText: { color: "#fff", fontSize: 20, marginTop: 20 },
+  menuContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  title: {
+    fontSize: 34,
+    fontWeight: "900",
+    color: "#7df9ff",
+    marginBottom: 40,
+  },
+
+  menuBtn: {
+    backgroundColor: "#2b1a5a",
+    padding: 18,
+    width: "75%",
+    borderRadius: 22,
+    marginBottom: 18,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#4efcff",
+  },
+
+  menuBtnText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+
+  container: {
+    alignItems: "center",
+    paddingTop: 10,
+  },
+
+  roundPill: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 28,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+
+  roundText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+  },
+
+  vsText: {
+    fontSize: 52,
+    fontWeight: "900",
+    color: "#7df9ff",
+    marginVertical: 30,
+  },
+
+  arena: {
+    flexDirection: "row",
+    gap: 20,
+  },
+
+  bigHand: {
+    width: 110,
+    height: 110,
+  },
+
+  resultText: {
+    color: "#fff",
+    fontSize: 26,
+    fontWeight: "800",
+    marginTop: 20,
+  },
+
+  choiceRow: {
+    flexDirection: "row",
+    marginTop: 30,
+  },
+
+  choiceBtn: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#2b1a5a",
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 14,
+    borderWidth: 2,
+    borderColor: "#4efcff",
+  },
+
+  choiceDisabled: {
+    opacity: 0.4,
+  },
+
+  choiceIcon: {
+    width: 44,
+    height: 44,
+  },
+
+  scorePill: {
+    marginTop: 30,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 40,
+    paddingVertical: 12,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "#4efcff",
+  },
+
+  scoreText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+  },
 
   modalBg: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    backgroundColor: "rgba(0,0,0,0.7)",
     justifyContent: "center",
     alignItems: "center",
   },
-  modalBox: { backgroundColor: "#fff", padding: 20, borderRadius: 16 },
-  modalTitle: { fontSize: 22, fontWeight: "800", marginBottom: 10 },
-  modalText: { fontSize: 15, lineHeight: 22 },
 
-  qTitle: { fontSize: 18, marginBottom: 12 },
-  qBtn: {
-    backgroundColor: "#6236ff",
-    padding: 12,
-    borderRadius: 12,
+  modalBox: {
+    backgroundColor: "#fff",
+    padding: 24,
+    borderRadius: 22,
+    width: "85%",
+  },
+
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    textAlign: "center",
     marginBottom: 10,
   },
-  qText: { color: "#fff", textAlign: "center" },
-  timer: { color: "#e63946", fontWeight: "700", marginBottom: 8 },
+
+  modalText: {
+    fontSize: 15,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+
+  qTitle: {
+    fontSize: 18,
+    marginBottom: 12,
+    textAlign: "center",
+  },
+
+  qBtn: {
+    backgroundColor: "#6236ff",
+    padding: 14,
+    borderRadius: 14,
+    marginTop: 10,
+  },
+
+  qText: {
+    color: "#fff",
+    textAlign: "center",
+    fontSize: 15,
+  },
+
+  timer: {
+    color: "#e63946",
+    fontWeight: "700",
+    marginBottom: 8,
+    textAlign: "center",
+  },
 });
